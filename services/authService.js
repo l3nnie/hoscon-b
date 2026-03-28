@@ -3,10 +3,10 @@ import UserModel from '../models/User.js';
 
 class AuthService {
   /**
-   * Login user and return user for session
-   * @param {string}
-   * @param {string
-   * @returns {Object} User data and tokens
+   * Login user and return user data for session
+   * @param {string} email
+   * @param {string} password
+   * @returns {Object} User data
    */
   static async login(email, password) {
     try {
@@ -36,13 +36,6 @@ class AuthService {
       throw error;
     }
   }
-
-  /**
-   * Refresh access token using refresh token
-   * @param {string} refreshToken - Refresh token
-   * @returns {Object} New token pair
-   */
-
 
   /**
    * Register new admin user
@@ -109,8 +102,7 @@ class AuthService {
   }
 
   /**
-   * Logout (invalidate token)
-   * @param {string} token - Token to invalidate
+   * Logout user
    * @returns {Object} Success status
    */
   static async logout() {
