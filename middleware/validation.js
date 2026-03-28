@@ -5,6 +5,16 @@ export const validate = (schema) => {
       req.validatedData = validatedData;
       next();
     } catch (error) {
+      console.error('❌ Validation failed:', {
+        path: req.path,
+        method: req.method,
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message,
+          code: e.code
+        }))
+      });
+      
       return res.status(400).json({
         error: 'Validation failed',
         details: error.errors.map(e => ({

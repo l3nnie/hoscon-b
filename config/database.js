@@ -1,12 +1,14 @@
 import { supabase, supabaseAdmin } from './supabase.js';
+import { transformHostelForDB, transformInquiryForDB, transformRoomTypeForDB } from '../utils/transform.js';
 
 export const db = {
   // Hostel queries
   hostels: {
     async findAll(filters = {}) {
+      // Build query with select first, then filters, sorting, and range
       let query = supabase
         .from('hostels')
-        .select('*, room_types(*)');
+        .select('*, room_types(*)', { count: 'exact' });
       
       // Apply filters
       if (filters.city) query = query.eq('city', filters.city);
@@ -29,12 +31,10 @@ export const db = {
       const from = (page - 1) * limit;
       const to = from + limit - 1;
       
-      const { data, error, count } = await query
-        .range(from, to)
-        .select('*, room_types(*)', { count: 'exact' });
+      const { data, error, count } = await query.range(from, to);
       
       if (error) throw error;
-      return { data, count, page, limit };
+      return { data: data || [], count: count || 0, page, limit };
     },
     
     async findBySlug(slug) {
@@ -42,6 +42,17 @@ export const db = {
         .from('hostels')
         .select('*, room_types(*)')
         .eq('slug', slug)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    
+    async findById(id) {
+      const { data, error } = await supabase
+        .from('hostels')
+        .select('*, room_types(*)')
+        .eq('id', id)
         .single();
       
       if (error) throw error;
@@ -73,20 +84,32 @@ export const db = {
     },
     
     async create(hostelData) {
+      console.log('🗄️ DB create called with:', JSON.stringify(hostelData, null, 2));
+      const dbData = transformHostelForDB(hostelData);
+      console.log('🔄 Transformed data:', JSON.stringify(dbData, null, 2));
+      
       const { data, error } = await supabaseAdmin
         .from('hostels')
-        .insert(hostelData)
+        .insert(dbData)
         .select()
         .single();
       
-      if (error) throw error;
+      console.log('📊 Supabase response - data:', data, 'error:', error);
+      
+      if (error) {
+        console.error('❌ DB insert error:', error);
+        throw error;
+      }
+      
+      console.log('✅ DB insert success, returning:', data);
       return data;
     },
     
     async update(id, hostelData) {
+      const dbData = transformHostelForDB(hostelData);
       const { data, error } = await supabaseAdmin
         .from('hostels')
-        .update(hostelData)
+        .update(dbData)
         .eq('id', id)
         .select()
         .single();
@@ -128,9 +151,10 @@ export const db = {
     },
     
     async create(roomTypeData) {
+      const dbData = transformRoomTypeForDB(roomTypeData);
       const { data, error } = await supabaseAdmin
         .from('room_types')
-        .insert(roomTypeData)
+        .insert(dbData)
         .select()
         .single();
       
@@ -139,9 +163,10 @@ export const db = {
     },
     
     async update(id, roomTypeData) {
+      const dbData = transformRoomTypeForDB(roomTypeData);
       const { data, error } = await supabaseAdmin
         .from('room_types')
-        .update(roomTypeData)
+        .update(dbData)
         .eq('id', id)
         .select()
         .single();
@@ -176,18 +201,32 @@ export const db = {
     async findAll(filters = {}) {
       let query = supabaseAdmin
         .from('inquiries')
-        .select('*');
+        .select('*', { count: 'exact' });
       
       if (filters.status) query = query.eq('status', filters.status);
       if (filters.search) {
         query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,hostel_name.ilike.%${filters.search}%`);
       }
       
-      const { data, error } = await query
-        .order('created_at', { ascending: false });
+      // Apply pagination
+      const page = filters.page || 1;
+      const limit = Math.min(filters.limit || 20, 100);
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      
+      const { data, error, count } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to);
       
       if (error) throw error;
-      return data;
+      
+      return {
+        data: data || [],
+        count: count || 0,
+        page,
+        limit,
+        totalPages: Math.ceil((count || 0) / limit)
+      };
     },
     
     async findById(id) {
@@ -202,9 +241,10 @@ export const db = {
     },
     
     async create(inquiryData) {
+      const dbData = transformInquiryForDB(inquiryData);
       const { data, error } = await supabase
         .from('inquiries')
-        .insert(inquiryData)
+        .insert(dbData)
         .select()
         .single();
       
@@ -222,6 +262,16 @@ export const db = {
       
       if (error) throw error;
       return data;
+    },
+    
+    async deleteByHostel(hostelId) {
+      const { error } = await supabaseAdmin
+        .from('inquiries')
+        .delete()
+        .eq('hostel_id', hostelId);
+      
+      if (error) throw error;
+      return { success: true };
     },
     
     async getStats() {

@@ -1,10 +1,11 @@
 import { z } from 'zod';
 
 export const hostelSchema = z.object({
+  slug: z.string().optional(),
   name: z.string().min(3, 'Name must be at least 3 characters'),
   description: z.string().min(20, 'Description must be at least 20 characters'),
   address: z.string().min(5, 'Address must be at least 5 characters'),
-  city: z.enum(['Nairobi', 'Mombasa', 'Kisumu', 'Eldoret']),
+  city: z.enum(['Ngomongo', 'Mjini', 'Diaspora']),
   distanceToUni: z.string().min(1, 'Distance to university is required'),
   priceMin: z.number().positive('Price must be positive'),
   priceMax: z.number().positive('Price must be positive'),
@@ -27,7 +28,6 @@ export const hostelSchema = z.object({
 
 export const inquirySchema = z.object({
   hostelId: z.string().uuid('Invalid hostel ID'),
-  hostelName: z.string(),
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Valid email required'),
   phone: z.string().min(10, 'Valid phone number required'),

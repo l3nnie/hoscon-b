@@ -1,4 +1,5 @@
 import slugify from 'slugify';
+import { supabaseAdmin } from '../config/supabase.js';
 
 export const generateSlug = (name) => {
   return slugify(name, {
@@ -14,7 +15,7 @@ export const ensureUniqueSlug = async (name, existingId = null) => {
   let counter = 1;
   
   while (!isUnique) {
-    const { data } = await supabase
+    const { data } = await supabaseAdmin
       .from('hostels')
       .select('id')
       .eq('slug', slug)

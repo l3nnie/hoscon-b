@@ -7,6 +7,9 @@ import authRoutes from './routes/authRoutes.js';
 import hostelRoutes from './routes/hostelRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import inquiryRoutes from './routes/inquiryRoutes.js';
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
+
 
 const app = express();
 
@@ -29,11 +32,25 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Body parsing
+// Body parsing - MUST be before routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// API routes
+// Cookies and sessions
+app.use(cookieParser());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-prod',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days
+  }
+}));
+
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/hostels', hostelRoutes);
 app.use('/api/inquiries', inquiryRoutes);

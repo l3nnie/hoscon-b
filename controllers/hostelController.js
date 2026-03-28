@@ -1,5 +1,7 @@
 import { db } from '../config/database.js';
 import { generateSlug, ensureUniqueSlug } from '../utils/slugify.js';
+import { transformHostel } from '../utils/transform.js';
+import ApiResponse from '../utils/response.js';
 
 export const getHostels = async (req, res, next) => {
   try {
@@ -7,14 +9,12 @@ export const getHostels = async (req, res, next) => {
     const { data, count, page, limit } = await db.hostels.findAll(filters);
     
     res.json({
-      hostels: data,
-      pagination: {
-        total: count,
-        page,
-        limit,
-        totalPages: Math.ceil(count / limit)
-      }
+      data: data.map(transformHostel),
+      total: count,
+      page,
+      totalPages: Math.ceil(count / limit)
     });
+  
   } catch (error) {
     next(error);
   }
@@ -29,7 +29,7 @@ export const getHostelBySlug = async (req, res, next) => {
       return res.status(404).json({ error: 'Hostel not found' });
     }
     
-    res.json(hostel);
+    res.json(transformHostel(hostel));
   } catch (error) {
     next(error);
   }
@@ -38,7 +38,7 @@ export const getHostelBySlug = async (req, res, next) => {
 export const getFeaturedHostels = async (req, res, next) => {
   try {
     const hostels = await db.hostels.findFeatured();
-    res.json(hostels);
+    res.json(hostels.map(transformHostel));
   } catch (error) {
     next(error);
   }
@@ -48,7 +48,7 @@ export const getNearbyHostels = async (req, res, next) => {
   try {
     const { city, excludeSlug } = req.query;
     const hostels = await db.hostels.findNearby(city, excludeSlug);
-    res.json(hostels);
+    res.json(hostels.map(transformHostel));
   } catch (error) {
     next(error);
   }
@@ -57,40 +57,62 @@ export const getNearbyHostels = async (req, res, next) => {
 export const createHostel = async (req, res, next) => {
   try {
     const hostelData = req.validatedData;
+    console.log('📝 Creating hostel with data:', JSON.stringify(hostelData, null, 2));
+    
     const { roomTypes, ...hostelBasicData } = hostelData;
     
     // Generate unique slug
     const slug = await ensureUniqueSlug(hostelData.name);
+    console.log('🏷️ Generated slug:', slug);
     
     // Calculate total rooms
     const totalRooms = roomTypes.reduce((sum, rt) => sum + rt.available, 0);
+    console.log('🏠 Total rooms calculated:', totalRooms);
     
     // Calculate occupancy (default to 0 for new hostels)
     const occupancy = 0;
     
-    // Create hostel
-    const newHostel = await db.hostels.create({
+    // Prepare data for database (camelCase to snake_case will be handled by transform)
+    const dbData = {
       ...hostelBasicData,
+      roomTypes, // This will be handled separately
       slug,
-      total_rooms: totalRooms,
-      occupancy,
-      rating: hostelData.rating || 0
-    });
+      totalRooms,
+      occupancy: 0
+    };
+    
+    console.log('🔄 Data for DB transform:', JSON.stringify(dbData, null, 2));
+    
+    // Create hostel
+    console.log('💾 Inserting hostel into database...');
+    const newHostel = await db.hostels.create(dbData);
+    
+    if (!newHostel) {
+      console.error('❌ Hostel creation returned null/undefined');
+      throw new Error('Failed to create hostel - database returned no data');
+    }
+    
+    console.log('✅ Hostel created:', newHostel);
     
     // Create room types
+    console.log('🏨 Creating room types...');
     if (roomTypes && roomTypes.length) {
       for (const roomType of roomTypes) {
+        console.log('  - Creating room type:', roomType);
         await db.roomTypes.create({
           ...roomType,
           hostel_id: newHostel.id
         });
       }
     }
+    console.log('✅ Room types created');
     
     // Fetch complete hostel with room types
+    console.log('📖 Fetching complete hostel data...');
     const completeHostel = await db.hostels.findBySlug(slug);
     
-    res.status(201).json(completeHostel);
+    console.log('🎉 Hostel creation complete!');
+    ApiResponse.success(res, transformHostel(completeHostel), 'Hostel created successfully', 201);
   } catch (error) {
     next(error);
   }
@@ -103,7 +125,7 @@ export const updateHostel = async (req, res, next) => {
     const { roomTypes, ...hostelBasicData } = hostelData;
     
     // Check if hostel exists
-    const existingHostel = await db.hostels.findBySlug(id);
+    const existingHostel = await db.hostels.findById(id);
     if (!existingHostel) {
       return res.status(404).json({ error: 'Hostel not found' });
     }
@@ -117,9 +139,28 @@ export const updateHostel = async (req, res, next) => {
     // Calculate total rooms
     const totalRooms = roomTypes.reduce((sum, rt) => sum + rt.available, 0);
     
+    // Map field names to match database columns
+    const mappedData = {
+      name: hostelBasicData.name,
+      description: hostelBasicData.description,
+      address: hostelBasicData.address,
+      city: hostelBasicData.city,
+      distance_to_uni: hostelBasicData.distanceToUni,
+      price_min: hostelBasicData.priceMin,
+      price_max: hostelBasicData.priceMax,
+      gender: hostelBasicData.gender,
+      amenities: hostelBasicData.amenities,
+      images: hostelBasicData.images,
+      contact_phone: hostelBasicData.contactPhone,
+      contact_whatsapp: hostelBasicData.contactWhatsApp,
+      contact_email: hostelBasicData.contactEmail,
+      featured: hostelBasicData.featured,
+      rating: hostelData.rating || 0
+    };
+    
     // Update hostel
     const updatedHostel = await db.hostels.update(id, {
-      ...hostelBasicData,
+      ...mappedData,
       slug,
       total_rooms: totalRooms,
       updated_at: new Date()
@@ -139,7 +180,7 @@ export const updateHostel = async (req, res, next) => {
     // Fetch complete hostel with room types
     const completeHostel = await db.hostels.findBySlug(slug);
     
-    res.json(completeHostel);
+    ApiResponse.success(res, transformHostel(completeHostel), 'Hostel updated successfully');
   } catch (error) {
     next(error);
   }
@@ -150,10 +191,13 @@ export const deleteHostel = async (req, res, next) => {
     const { id } = req.params;
     
     // Check if hostel exists
-    const existingHostel = await db.hostels.findBySlug(id);
+    const existingHostel = await db.hostels.findById(id);
     if (!existingHostel) {
       return res.status(404).json({ error: 'Hostel not found' });
     }
+    
+    // Delete associated inquiries first
+    await db.inquiries.deleteByHostel(id);
     
     // Delete room types first (cascade should handle this, but explicit for safety)
     await db.roomTypes.deleteByHostel(existingHostel.id);
@@ -161,7 +205,23 @@ export const deleteHostel = async (req, res, next) => {
     // Delete hostel
     await db.hostels.delete(existingHostel.id);
     
-    res.json({ success: true, message: 'Hostel deleted successfully' });
+    ApiResponse.success(res, { success: true }, 'Hostel deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+import imageService from '../services/imageService.js';
+
+export const uploadHostelImage = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    const result = await imageService.uploadImage(req.file);
+
+    ApiResponse.success(res, { imageUrl: result.url }, 'Image uploaded successfully');
   } catch (error) {
     next(error);
   }

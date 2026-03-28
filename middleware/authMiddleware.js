@@ -1,44 +1,57 @@
-import jwt from 'jsonwebtoken';
+
 import { supabaseAdmin } from '../config/supabase.js';
 
-export const authenticateToken = async (req, res, next) => {
+export const authenticateSession = async (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    
-    if (!token) {
-      return res.status(401).json({ error: 'Access token required' });
+    if (!req.session || !req.session.user) {
+      return res.status(401).json({ error: 'Session required' });
     }
     
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Verify admin user still exists
-    const { data: admin, error } = await supabaseAdmin
+    // Optional: verify user still exists
+    const { data: user, error: userError } = await supabaseAdmin
       .from('admin_users')
       .select('id, email, role')
-      .eq('id', decoded.userId)
+      .eq('id', req.session.user.id)
       .single();
     
-    if (error || !admin) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
+    if (userError || !user) {
+      return res.status(401).json({ error: 'User not found' });
     }
     
-    req.user = admin;
+    req.user = user;
     next();
   } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired' });
-    }
+    console.error('Auth middleware error:', error);
     next(error);
   }
 };
 
-export const requireAdmin = (req, res, next) => {
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
+export const requireAdmin = async (req, res, next) => {
+  try {
+    // First check if session user exists
+    if (!req.session || !req.session.user) {
+      return res.status(401).json({ error: 'Session required' });
+    }
+    
+    // Verify user has admin role in database
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('admin_users')
+      .select('id, email, role')
+      .eq('id', req.session.user.id)
+      .single();
+    
+    if (userError || !user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+    
+    if (user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Admin middleware error:', error);
+    next(error);
   }
-  next();
 };
