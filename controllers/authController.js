@@ -1,19 +1,10 @@
-// authController.js  
-  
 import AuthService from '../services/authService.js';  
 import ApiResponse from '../utils/response.js';  
 import { supabaseAdmin } from '../config/supabase.js';  
   
 export const login = async (req, res, next) => {  
   try {  
-    // Fallback to req.body if validatedData is not populated  
     const { email, password } = req.validatedData || req.body;  
-  
-    console.log('=== LOGIN DEBUG ===');  
-    console.log('req.body:', JSON.stringify(req.body));  
-    console.log('req.validatedData:', JSON.stringify(req.validatedData));  
-    console.log('Email:', email, '| Password defined:', !!password);  
-    console.log('===================');  
   
     if (!email || !password) {  
       return ApiResponse.error(res, 'Email and password are required', 400);  
@@ -25,9 +16,9 @@ export const login = async (req, res, next) => {
     req.session.user = result;  
     req.session.userId = result.id;  
   
+    // Return user wrapped so frontend can read responseData.data.user  
     ApiResponse.success(res, { user: result }, 'Login successful');  
   } catch (error) {  
-    console.error('Login error:', error.message);  
     if (error.message === 'Invalid credentials') {  
       return ApiResponse.error(res, error.message, 401);  
     }  
@@ -82,7 +73,7 @@ export const logout = async (req, res, next) => {
       if (err) {  
         return next(err);  
       }  
-      res.clearCookie('connect.sid'); // Clear the session cookie too  
+      res.clearCookie('connect.sid');  
       ApiResponse.success(res, { success: true }, 'Logged out successfully');  
     });  
   } catch (error) {  
