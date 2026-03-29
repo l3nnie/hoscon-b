@@ -2,9 +2,6 @@ import express from 'express';
 import cors from 'cors';  
 import helmet from 'helmet';  
 import rateLimit from 'express-rate-limit';  
-import session from 'express-session';  
-import connectPgSimple from 'connect-pg-simple';  
-import pg from 'pg';  
 import cookieParser from 'cookie-parser';  
 import { errorHandler } from './middleware/errorHandler.js';  
 import authRoutes from './routes/authRoutes.js';  
@@ -40,26 +37,6 @@ app.use('/api/', limiter);
 // Body parsing - MUST be before routes  
 app.use(express.json());  
 app.use(express.urlencoded({ extended: true }));  
-  
-// Cookies and sessions  
-// Temporarily force memory store until DATABASE_URL is properly configured  
-console.warn('⚠️  Using memory store for sessions. Sessions will not persist across restarts.');  
-const sessionStore = new session.MemoryStore();  
-  
-app.use(cookieParser());  
-app.use(session({  
-  store: sessionStore,  
-  secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-prod',  
-  resave: false,  
-  saveUninitialized: false,  
-  cookie: {  
-    httpOnly: true,  
-    secure: process.env.NODE_ENV === 'production',  
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',  
-    domain: process.env.FRONTEND_DOMAIN || undefined,  
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days  
-  }  
-}));  
   
 // Routes  
 app.use('/api/auth', authRoutes);  

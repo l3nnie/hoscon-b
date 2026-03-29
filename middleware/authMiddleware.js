@@ -1,23 +1,21 @@
 
-import { supabaseAdmin } from '../config/supabase.js';
+import SessionService from '../services/sessionService.js';
 
 export const authenticateSession = async (req, res, next) => {
   try {
-    if (!req.session || !req.session.user) {
-      return res.status(401).json({ error: 'Session required' });
+    // Get session token from Authorization header or cookie
+    const sessionToken = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.sessionToken;
+
+    if (!sessionToken) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
-    
-    // Optional: verify user still exists
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('admin_users')
-      .select('id, email, role')
-      .eq('id', req.session.user.id)
-      .single();
-    
-    if (userError || !user) {
-      return res.status(401).json({ error: 'User not found' });
+
+    const user = await SessionService.validateSession(sessionToken);
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid or expired session' });
     }
-    
+
     req.user = user;
     next();
   } catch (error) {
@@ -28,30 +26,19 @@ export const authenticateSession = async (req, res, next) => {
 
 export const requireAdmin = async (req, res, next) => {
   try {
-    // First check if session user exists
-    if (!req.session || !req.session.user) {
-      return res.status(401).json({ error: 'Session required' });
+    // First check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
-    
-    // Verify user has admin role in database
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('admin_users')
-      .select('id, email, role')
-      .eq('id', req.session.user.id)
-      .single();
-    
-    if (userError || !user) {
-      return res.status(401).json({ error: 'User not found' });
-    }
-    
-    if (user.role !== 'admin') {
+
+    // Check if user has admin role
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
-    
-    req.user = user;
+
     next();
   } catch (error) {
-    console.error('Admin middleware error:', error);
+    console.error('Require admin middleware error:', error);
     next(error);
   }
 };

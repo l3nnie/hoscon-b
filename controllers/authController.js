@@ -1,5 +1,6 @@
-import AuthService from '../services/authService.js';  
-import ApiResponse from '../utils/response.js';  
+import AuthService from '../services/authService.js';
+import SessionService from '../services/sessionService.js';
+import ApiResponse from '../utils/response.js';
 import { supabaseAdmin } from '../config/supabase.js';  
   
 export const login = async (req, res, next) => {  
@@ -12,27 +13,15 @@ export const login = async (req, res, next) => {
   
     const result = await AuthService.login(email, password);  
   
-    // Set session  
-    req.session.user = result;  
-    req.session.userId = result.id;  
+    // Create session  
+    const sessionToken = await SessionService.createSession(result, req);  
     console.log('Session created for user:', result.email);  
-    console.log('Session data:', { user: result, userId: result.id });  
   
-    // Save session and wait for completion  
-    await new Promise((resolve, reject) => {  
-      req.session.save((err) => {  
-        if (err) {  
-          console.error('Session save error:', err);  
-          reject(err);  
-        } else {  
-          console.log('Session saved successfully');  
-          resolve();  
-        }  
-      });  
-    });  
-  
-    // Return user wrapped so frontend can read responseData.data.user  
-    ApiResponse.success(res, { user: result }, 'Login successful');  
+    // Return user and session token  
+    ApiResponse.success(res, {  
+      user: result,  
+      sessionToken  
+    }, 'Login successful');  
   } catch (error) {  
     if (error.message === 'Invalid credentials') {  
       return ApiResponse.error(res, error.message, 401);  
@@ -83,14 +72,17 @@ export const changePassword = async (req, res, next) => {
   
 export const logout = async (req, res, next) => {  
   try {  
-    await AuthService.logout();  
-    req.session.destroy((err) => {  
-      if (err) {  
-        return next(err);  
-      }  
-      res.clearCookie('connect.sid');  
-      ApiResponse.success(res, { success: true }, 'Logged out successfully');  
-    });  
+    // Get session token from Authorization header or cookie  
+    const sessionToken = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.sessionToken;  
+  
+    if (sessionToken) {  
+      await SessionService.destroySession(sessionToken);  
+    }  
+  
+    // Clear any cookies  
+    res.clearCookie('sessionToken');  
+  
+    ApiResponse.success(res, { success: true }, 'Logged out successfully');  
   } catch (error) {  
     next(error);  
   }  
@@ -98,27 +90,26 @@ export const logout = async (req, res, next) => {
   
 export const verifySession = async (req, res, next) => {  
   try {  
+    // Get session token from Authorization header or cookie  
+    const sessionToken = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.sessionToken;  
+  
     console.log('Verifying session...');  
-    console.log('Session exists:', !!req.session);  
-    console.log('Session user:', req.session?.user);  
-    console.log('Session ID:', req.session?.id);  
-    console.log('Cookies:', req.headers.cookie);  
+    console.log('Session token present:', !!sessionToken);  
   
-    if (req.session && req.session.user) {  
-      const { data: user, error: userError } = await supabaseAdmin  
-        .from('admin_users')  
-        .select('id, email, role')  
-        .eq('id', req.session.user.id)  
-        .single();  
-  
-      if (!userError && user) {  
-        console.log('Session valid for user:', user.email);  
-        return ApiResponse.success(res, { valid: true, user }, 'Session is valid');  
-      }  
+    if (!sessionToken) {  
+      console.log('No session token provided');  
+      return ApiResponse.success(res, { valid: false, user: null }, 'No active session');  
     }  
   
-    console.log('No active session found');  
-    ApiResponse.success(res, { valid: false, user: null }, 'No active session');  
+    const user = await SessionService.validateSession(sessionToken);  
+  
+    if (!user) {  
+      console.log('Session validation failed');  
+      return ApiResponse.success(res, { valid: false, user: null }, 'Session expired or invalid');  
+    }  
+  
+    console.log('Session validated for user:', user.email);  
+    ApiResponse.success(res, { valid: true, user }, 'Session is valid');  
   } catch (error) {  
     console.error('Verify session error:', error);  
     next(error);  
