@@ -78,7 +78,13 @@ class SessionService {
         .eq('id', session.user_id)
         .single();
 
-      if (userError || !user) {
+      if (userError) {
+        console.log('User query error:', userError);
+        // Don't destroy session if query fails due to permissions
+        return null;
+      }
+
+      if (!user) {
         console.log('User not found for session');
         await this.destroySession(sessionToken);
         return null;
