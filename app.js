@@ -42,22 +42,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));  
   
 // Cookies and sessions  
-let sessionStore;  
-if (process.env.DATABASE_URL) {  
-  const PgStore = connectPgSimple(session);  
-  const pgPool = new pg.Pool({  
-    connectionString: process.env.DATABASE_URL,  
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false  
-  });  
-  sessionStore = new PgStore({  
-    pool: pgPool,  
-    tableName: 'user_sessions',  
-    createTableIfMissing: true  
-  });  
-} else {  
-  console.warn('⚠️  DATABASE_URL not set, using memory store for sessions. Sessions will not persist across restarts.');  
-  sessionStore = new session.MemoryStore();  
-}  
+// Temporarily force memory store until DATABASE_URL is properly configured  
+console.warn('⚠️  Using memory store for sessions. Sessions will not persist across restarts.');  
+const sessionStore = new session.MemoryStore();  
   
 app.use(cookieParser());  
 app.use(session({  

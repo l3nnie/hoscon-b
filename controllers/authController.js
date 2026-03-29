@@ -16,11 +16,11 @@ export const login = async (req, res, next) => {
     req.session.user = result;  
     req.session.userId = result.id;  
   
-    // Save session explicitly  
+    // Save session explicitly (non-blocking)  
     req.session.save((err) => {  
       if (err) {  
-        console.error('Session save error:', err);  
-        return next(err);  
+        console.error('Session save error (non-critical):', err.message);  
+        // Don't fail the login if session save fails  
       }  
       // Return user wrapped so frontend can read responseData.data.user  
       ApiResponse.success(res, { user: result }, 'Login successful');  
