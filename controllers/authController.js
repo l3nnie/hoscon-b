@@ -15,16 +15,24 @@ export const login = async (req, res, next) => {
     // Set session  
     req.session.user = result;  
     req.session.userId = result.id;  
+    console.log('Session created for user:', result.email);  
+    console.log('Session data:', { user: result, userId: result.id });  
   
-    // Save session explicitly (non-blocking)  
-    req.session.save((err) => {  
-      if (err) {  
-        console.error('Session save error (non-critical):', err.message);  
-        // Don't fail the login if session save fails  
-      }  
-      // Return user wrapped so frontend can read responseData.data.user  
-      ApiResponse.success(res, { user: result }, 'Login successful');  
+    // Save session and wait for completion  
+    await new Promise((resolve, reject) => {  
+      req.session.save((err) => {  
+        if (err) {  
+          console.error('Session save error:', err);  
+          reject(err);  
+        } else {  
+          console.log('Session saved successfully');  
+          resolve();  
+        }  
+      });  
     });  
+  
+    // Return user wrapped so frontend can read responseData.data.user  
+    ApiResponse.success(res, { user: result }, 'Login successful');  
   } catch (error) {  
     if (error.message === 'Invalid credentials') {  
       return ApiResponse.error(res, error.message, 401);  
@@ -90,6 +98,12 @@ export const logout = async (req, res, next) => {
   
 export const verifySession = async (req, res, next) => {  
   try {  
+    console.log('Verifying session...');  
+    console.log('Session exists:', !!req.session);  
+    console.log('Session user:', req.session?.user);  
+    console.log('Session ID:', req.session?.id);  
+    console.log('Cookies:', req.headers.cookie);  
+  
     if (req.session && req.session.user) {  
       const { data: user, error: userError } = await supabaseAdmin  
         .from('admin_users')  
@@ -98,12 +112,15 @@ export const verifySession = async (req, res, next) => {
         .single();  
   
       if (!userError && user) {  
+        console.log('Session valid for user:', user.email);  
         return ApiResponse.success(res, { valid: true, user }, 'Session is valid');  
       }  
     }  
   
+    console.log('No active session found');  
     ApiResponse.success(res, { valid: false, user: null }, 'No active session');  
   } catch (error) {  
+    console.error('Verify session error:', error);  
     next(error);  
   }  
 };
