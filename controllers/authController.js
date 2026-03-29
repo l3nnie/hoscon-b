@@ -25,7 +25,7 @@ export const login = async (req, res, next) => {
     req.session.user = result;  
     req.session.userId = result.id;  
   
-    ApiResponse.success(res, result, 'Login successful');  
+    ApiResponse.success(res, { user: result }, 'Login successful');  
   } catch (error) {  
     console.error('Login error:', error.message);  
     if (error.message === 'Invalid credentials') {  
