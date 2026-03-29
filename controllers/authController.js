@@ -16,8 +16,15 @@ export const login = async (req, res, next) => {
     req.session.user = result;  
     req.session.userId = result.id;  
   
-    // Return user wrapped so frontend can read responseData.data.user  
-    ApiResponse.success(res, { user: result }, 'Login successful');  
+    // Save session explicitly  
+    req.session.save((err) => {  
+      if (err) {  
+        console.error('Session save error:', err);  
+        return next(err);  
+      }  
+      // Return user wrapped so frontend can read responseData.data.user  
+      ApiResponse.success(res, { user: result }, 'Login successful');  
+    });  
   } catch (error) {  
     if (error.message === 'Invalid credentials') {  
       return ApiResponse.error(res, error.message, 401);  

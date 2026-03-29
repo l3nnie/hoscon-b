@@ -23,8 +23,8 @@ app.use(helmet());
 // CORS configuration  
 const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || [];  
 const corsOptions = {  
-  origin: allowedOrigins.length > 0 ? allowedOrigins : false,  
-  credentials: allowedOrigins.length > 0,  
+  origin: allowedOrigins.length > 0 ? allowedOrigins : true,  
+  credentials: true,  
   optionsSuccessStatus: 200  
 };  
 app.use(cors(corsOptions));  
@@ -61,7 +61,7 @@ app.use(session({
   cookie: {  
     httpOnly: true,  
     secure: process.env.NODE_ENV === 'production',  
-    sameSite: 'lax',  
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',  
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days  
   }  
 }));  
