@@ -66,7 +66,7 @@ export const createHostel = async (req, res, next) => {
     console.log('🏷️ Generated slug:', slug);
     
     // Calculate total rooms
-    const totalRooms = roomTypes.reduce((sum, rt) => sum + rt.available, 0);
+    const totalRooms = roomTypes.reduce((sum, rt) => sum + rt.total, 0);
     console.log('🏠 Total rooms calculated:', totalRooms);
     
     // Calculate occupancy (default to 0 for new hostels)
@@ -137,7 +137,7 @@ export const updateHostel = async (req, res, next) => {
     }
     
     // Calculate total rooms
-    const totalRooms = roomTypes.reduce((sum, rt) => sum + rt.available, 0);
+    const totalRooms = roomTypes.reduce((sum, rt) => sum + rt.total, 0);
     
     // Map field names to match database columns
     const mappedData = {

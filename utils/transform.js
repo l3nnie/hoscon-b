@@ -21,6 +21,7 @@ export const transformHostel = (dbHostel) => {
     roomTypes: dbHostel.room_types?.map(rt => ({
       type: rt.type,
       price: rt.price,
+      total: rt.total,
       available: rt.available
     })),
     contactPhone: dbHostel.contact_phone,
@@ -90,6 +91,7 @@ export const transformRoomTypeForDB = (roomTypeData) => {
     hostel_id: roomTypeData.hostelId || roomTypeData.hostel_id,
     type: roomTypeData.type,
     price: roomTypeData.price,
+    total: roomTypeData.total,
     available: roomTypeData.available,
     created_at: roomTypeData.createdAt || roomTypeData.created_at
   };

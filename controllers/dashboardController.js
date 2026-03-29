@@ -1,21 +1,22 @@
 import { db } from '../config/database.js';
 import ApiResponse from '../utils/response.js';
 import { transformHostel, transformInquiry } from '../utils/transform.js';
+import HostelModel from '../models/Hostel.js';
+import InquiryModel from '../models/Inquiry.js';
 
 export const getDashboardStats = async (req, res, next) => {
   try {
     //console.log('Getting dashboard stats...');
     
     // Get hostel stats
-    const hostels = await db.hostels.getStats();
+    const hostels = await HostelModel.getStats();
     //console.log('Hostels stats:', hostels);
-    const totalHostels = hostels.length;
-    const totalRooms = hostels.reduce((sum, h) => sum + (h.total_rooms || 0), 0);
-    const totalOccupancy = hostels.reduce((sum, h) => sum + (h.occupancy || 0), 0);
-    const avgOccupancy = totalHostels > 0 ? Math.round(totalOccupancy / totalHostels) : 0;
+    const totalHostels = hostels.total;
+    const totalRooms = hostels.totalRooms;
+    const avgOccupancy = hostels.avgOccupancy;
     
     // Get inquiry stats
-    const inquiryStats = await db.inquiries.getStats();
+    const inquiryStats = await InquiryModel.getStats();
     //console.log('Inquiry stats:', inquiryStats);
     
     // Get recent inquiries (last 5)

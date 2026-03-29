@@ -15,6 +15,7 @@ export const hostelSchema = z.object({
   roomTypes: z.array(z.object({
     type: z.string(),
     price: z.number().positive(),
+    total: z.number().int().nonnegative(),
     available: z.number().int().nonnegative()
   })),
   contactPhone: z.string().min(10, 'Valid phone number required'),

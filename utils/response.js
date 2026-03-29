@@ -131,6 +131,7 @@ export const formatHostelResponse = (hostel) => {
     roomTypes: hostel.room_types?.map(rt => ({
       type: rt.type,
       price: rt.price,
+      total: rt.total,
       available: rt.available
     })) || [],
     contactPhone: hostel.contact_phone,

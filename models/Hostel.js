@@ -169,8 +169,11 @@ class HostelModel {
       // Generate unique slug
       const slug = await ensureUniqueSlug(hostelData.name);
       
-      // Calculate total rooms
-      const totalRooms = roomTypes.reduce((sum, rt) => sum + rt.available, 0);
+      // Calculate total rooms and initial occupancy
+      const totalRooms = roomTypes.reduce((sum, rt) => sum + (rt.total || rt.available || 0), 0);
+      const availableSum = roomTypes.reduce((sum, rt) => sum + (rt.available || 0), 0);
+      const occupied = Math.max(0, totalRooms - availableSum);
+      const initialOccupancy = totalRooms > 0 ? Math.round((occupied / totalRooms) * 100) : 0;
       
       // Create hostel
       const { data: newHostel, error: hostelError } = await supabaseAdmin
@@ -179,7 +182,7 @@ class HostelModel {
           ...hostelBasicData,
           slug,
           total_rooms: totalRooms,
-          occupancy: 0,
+          occupancy: initialOccupancy,
           rating: hostelData.rating || 0
         })
         .select()
@@ -228,10 +231,14 @@ class HostelModel {
         slug = await ensureUniqueSlug(hostelData.name, id);
       }
       
-      // Calculate total rooms if room types are provided
+      // Calculate total rooms and occupancy if room types are provided
       let totalRooms = existingHostel.total_rooms;
+      let occupancy = existingHostel.occupancy;
       if (roomTypes) {
-        totalRooms = roomTypes.reduce((sum, rt) => sum + rt.available, 0);
+        totalRooms = roomTypes.reduce((sum, rt) => sum + (rt.total || rt.available || 0), 0);
+        const availableSum = roomTypes.reduce((sum, rt) => sum + (rt.available || 0), 0);
+        const occupied = Math.max(0, totalRooms - availableSum);
+        occupancy = totalRooms > 0 ? Math.round((occupied / totalRooms) * 100) : 0;
       }
       
       // Update hostel
@@ -241,6 +248,7 @@ class HostelModel {
           ...hostelBasicData,
           slug,
           total_rooms: totalRooms,
+          occupancy: occupancy,
           updated_at: new Date()
         })
         .eq('id', id)
@@ -313,7 +321,7 @@ class HostelModel {
     try {
       const { data, error } = await supabase
         .from('hostels')
-        .select('id, total_rooms, occupancy, rating');
+        .select('id, total_rooms, rating, room_types(total, available)');
       
       if (error) throw error;
       
@@ -327,9 +335,21 @@ class HostelModel {
       }
       
       const total = data.length;
-      const totalRooms = data.reduce((sum, h) => sum + (h.total_rooms || 0), 0);
-      const totalOccupancy = data.reduce((sum, h) => sum + (h.occupancy || 0), 0);
-      const totalRating = data.reduce((sum, h) => sum + (h.rating || 0), 0);
+      let totalRooms = 0;
+      let totalOccupancy = 0;
+      let totalRating = 0;
+      
+      for (const hostel of data) {
+        const roomTypes = hostel.room_types || [];
+        const hostelTotalRooms = roomTypes.reduce((sum, rt) => sum + (rt.total || 0), 0);
+        const currentAvailable = roomTypes.reduce((sum, rt) => sum + (rt.available || 0), 0);
+        const occupied = Math.max(0, hostelTotalRooms - currentAvailable);
+        const occupancy = hostelTotalRooms > 0 ? (occupied / hostelTotalRooms) * 100 : 0;
+        
+        totalRooms += hostelTotalRooms;
+        totalOccupancy += occupancy;
+        totalRating += hostel.rating || 0;
+      }
       
       return {
         total,

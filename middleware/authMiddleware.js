@@ -8,12 +8,12 @@ export const authenticateSession = async (req, res, next) => {
     const customToken = req.headers['x-session-token'];
     const sessionToken = authHeader?.replace('Bearer ', '') || customToken || req.cookies?.sessionToken;
 
-    console.log('🔐 Auth middleware - Request URL:', req.url);
-    console.log('🔐 Auth middleware - All headers:', Object.keys(req.headers));
-    console.log('🔐 Auth middleware - Auth header:', authHeader ? authHeader.substring(0, 20) + '...' : 'none');
-    console.log('🔐 Auth middleware - Custom token:', customToken ? customToken.substring(0, 20) + '...' : 'none');
-    console.log('🔐 Auth middleware - Session token present:', !!sessionToken);
-    console.log('🔐 Auth middleware - Cookies:', req.cookies);
+    //console.log('🔐 Auth middleware - Request URL:', req.url);
+    //console.log('🔐 Auth middleware - All headers:', Object.keys(req.headers));
+    //console.log('🔐 Auth middleware - Auth header:', authHeader ? authHeader.substring(0, 20) + '...' : 'none');
+    //console.log('🔐 Auth middleware - Custom token:', customToken ? customToken.substring(0, 20) + '...' : 'none');
+    //console.log('🔐 Auth middleware - Session token present:', !!sessionToken);
+    //console.log('🔐 Auth middleware - Cookies:', req.cookies);
 
     if (!sessionToken) {
       console.log('❌ No session token found - returning 401');
