@@ -2,13 +2,15 @@ import express from 'express';
 import cors from 'cors';  
 import helmet from 'helmet';  
 import rateLimit from 'express-rate-limit';  
+import session from 'express-session';  
+import connectPgSimple from 'connect-pg-simple';  
+import pg from 'pg';  
+import cookieParser from 'cookie-parser';  
 import { errorHandler } from './middleware/errorHandler.js';  
 import authRoutes from './routes/authRoutes.js';  
 import hostelRoutes from './routes/hostelRoutes.js';  
 import adminRoutes from './routes/adminRoutes.js';  
 import inquiryRoutes from './routes/inquiryRoutes.js';  
-import session from 'express-session';  
-import cookieParser from 'cookie-parser';  
   
 const app = express();  
   
@@ -38,17 +40,28 @@ app.use('/api/', limiter);
 app.use(express.json());  
 app.use(express.urlencoded({ extended: true }));  
   
-// Cookies and sessions  
+// Cookies and sessions with persistent PostgreSQL store  
+const PgStore = connectPgSimple(session);  
+const pgPool = new pg.Pool({  
+  connectionString: process.env.DATABASE_URL,  
+  ssl: { rejectUnauthorized: false }  
+});  
+  
 app.use(cookieParser());  
 app.use(session({  
+  store: new PgStore({  
+    pool: pgPool,  
+    tableName: 'user_sessions',  
+    createTableIfMissing: true  
+  }),  
   secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-prod',  
   resave: false,  
   saveUninitialized: false,  
   cookie: {  
     httpOnly: true,  
     secure: process.env.NODE_ENV === 'production',  
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',  
-    maxAge: 7 * 24 * 60 * 60 * 1000  
+    sameSite: 'lax',  
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days  
   }  
 }));  
   
