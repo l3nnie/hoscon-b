@@ -22,6 +22,7 @@ const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || [];
 const corsOptions = {  
   origin: allowedOrigins.length > 0 ? allowedOrigins : true,  
   credentials: true,  
+  allowedHeaders: ['Authorization', 'X-Session-Token', 'Content-Type', 'Accept', 'Accept-Encoding', 'Accept-Language'],  
   optionsSuccessStatus: 200  
 };  
 app.use(cors(corsOptions));  
