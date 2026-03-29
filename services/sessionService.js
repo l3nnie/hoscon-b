@@ -61,16 +61,7 @@ class SessionService {
       // Find session in database
       const { data: session, error } = await supabaseAdmin
         .from('user_sessions')
-        .select(`
-          *,
-          admin_users (
-            id,
-            email,
-            role,
-            full_name,
-            created_at
-          )
-        `)
+        .select('*')
         .eq('session_token', sessionToken)
         .gt('expires_at', new Date().toISOString())
         .single();
@@ -80,15 +71,21 @@ class SessionService {
         return null;
       }
 
-      // Check if user still exists and is active
-      if (!session.admin_users) {
+      // Get user data separately
+      const { data: user, error: userError } = await supabaseAdmin
+        .from('admin_users')
+        .select('id, email, role, full_name, created_at')
+        .eq('id', session.user_id)
+        .single();
+
+      if (userError || !user) {
         console.log('User not found for session');
         await this.destroySession(sessionToken);
         return null;
       }
 
-      console.log(`Session validated for user ${session.admin_users.email}`);
-      return session.admin_users;
+      console.log(`Session validated for user ${user.email}`);
+      return user;
     } catch (error) {
       console.error('Session validation error:', error);
       return null;
