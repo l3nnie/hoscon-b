@@ -37,6 +37,7 @@ app.use('/api/', limiter);
 // Body parsing - MUST be before routes  
 app.use(express.json());  
 app.use(express.urlencoded({ extended: true }));  
+app.use(cookieParser());  
   
 // Routes  
 app.use('/api/auth', authRoutes);  

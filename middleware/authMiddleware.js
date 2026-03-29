@@ -8,29 +8,30 @@ export const authenticateSession = async (req, res, next) => {
     const customToken = req.headers['x-session-token'];
     const sessionToken = authHeader?.replace('Bearer ', '') || customToken || req.cookies?.sessionToken;
 
-    console.log('Auth middleware - Headers:', req.headers);
-    console.log('Auth middleware - Auth header:', authHeader);
-    console.log('Auth middleware - Custom token:', customToken);
-    console.log('Auth middleware - Session token present:', !!sessionToken);
-    console.log('Auth middleware - Cookies:', req.cookies);
+    console.log('🔐 Auth middleware - Request URL:', req.url);
+    console.log('🔐 Auth middleware - All headers:', Object.keys(req.headers));
+    console.log('🔐 Auth middleware - Auth header:', authHeader ? authHeader.substring(0, 20) + '...' : 'none');
+    console.log('🔐 Auth middleware - Custom token:', customToken ? customToken.substring(0, 20) + '...' : 'none');
+    console.log('🔐 Auth middleware - Session token present:', !!sessionToken);
+    console.log('🔐 Auth middleware - Cookies:', req.cookies);
 
     if (!sessionToken) {
-      console.log('No session token found');
+      console.log('❌ No session token found - returning 401');
       return res.status(401).json({ error: 'Authentication required' });
     }
 
     const user = await SessionService.validateSession(sessionToken);
 
     if (!user) {
-      console.log('Session validation failed for token:', sessionToken.substring(0, 8) + '...');
+      console.log('❌ Session validation failed for token:', sessionToken.substring(0, 8) + '...');
       return res.status(401).json({ error: 'Invalid or expired session' });
     }
 
-    console.log('Session validated for user:', user.email);
+    console.log('✅ Session validated for user:', user.email, 'role:', user.role);
     req.user = user;
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    console.error('❌ Auth middleware error:', error);
     next(error);
   }
 };
@@ -42,8 +43,9 @@ export const requireAdmin = async (req, res, next) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Check if user has admin role
-    if (req.user.role !== 'admin') {
+    // Check if user has admin role (accept both 'admin' and 'supabaseAdmin')
+    if (req.user.role !== 'admin' && req.user.role !== 'supabaseAdmin') {
+      console.log('User role not authorized:', req.user.role);
       return res.status(403).json({ error: 'Admin access required' });
     }
 
