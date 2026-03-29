@@ -21,9 +21,10 @@ app.set('trust proxy', 1);
 app.use(helmet());  
   
 // CORS configuration  
+const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || [];  
 const corsOptions = {  
-  origin: process.env.CORS_ORIGIN?.split(',') || '*',  
-  credentials: true,  
+  origin: allowedOrigins.length > 0 ? allowedOrigins : false,  
+  credentials: allowedOrigins.length > 0,  
   optionsSuccessStatus: 200  
 };  
 app.use(cors(corsOptions));  
