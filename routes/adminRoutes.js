@@ -12,7 +12,7 @@ import {
   updateInquiryStatus
 } from '../controllers/inquiryController.js';
 import { getDashboardStats } from '../controllers/dashboardController.js';
-import { requireAdmin } from '../middleware/authMiddleware.js';
+import { requireAdmin, authenticateSession } from '../middleware/authMiddleware.js';
 import { validate, validateQuery } from '../middleware/validation.js';
 import { hostelSchema, filtersSchema } from '../utils/validators.js';
 
@@ -34,6 +34,7 @@ const upload = multer({
 const router = express.Router();
 
 // All admin routes require authentication and admin role
+router.use(authenticateSession);
 router.use(requireAdmin);
 
 // Dashboard
