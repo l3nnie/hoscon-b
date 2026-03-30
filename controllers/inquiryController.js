@@ -5,7 +5,7 @@ import { transformInquiry } from '../utils/transform.js';
 export const createInquiry = async (req, res, next) => {
   try {
     const inquiryData = req.validatedData;
-    console.log('Creating inquiry with data:', inquiryData);
+    //console.log('Creating inquiry with data:', inquiryData);
     
     // Verify hostel exists
     const hostel = await db.hostels.findById(inquiryData.hostelId);

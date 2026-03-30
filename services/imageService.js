@@ -101,7 +101,7 @@ class ImageService {
       console.log('  - Blob size:', blob.size);
 
       // Try using signed upload URL for better content type control
-      console.log('🔐 Creating signed upload URL...');
+      //console.log('🔐 Creating signed upload URL...');
       const { data: uploadData, error: signedError } = await supabaseAdmin.storage
         .from(this.bucketName)
         .createSignedUploadUrl(fileName);

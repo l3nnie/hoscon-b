@@ -59,17 +59,17 @@ export const getNearbyHostels = async (req, res, next) => {
 export const createHostel = async (req, res, next) => {
   try {
     const hostelData = req.validatedData;
-    console.log('📝 Creating hostel with data:', JSON.stringify(hostelData, null, 2));
+    //console.log('📝 Creating hostel with data:', JSON.stringify(hostelData, null, 2));
     
     const { roomTypes, ...hostelBasicData } = hostelData;
     
     // Generate unique slug
     const slug = await ensureUniqueSlug(hostelData.name);
-    console.log('🏷️ Generated slug:', slug);
+    //console.log('🏷️ Generated slug:', slug);
     
     // Calculate total rooms
     const totalRooms = roomTypes.reduce((sum, rt) => sum + rt.total, 0);
-    console.log('🏠 Total rooms calculated:', totalRooms);
+    //console.log('🏠 Total rooms calculated:', totalRooms);
     
     // Calculate occupancy (default to 0 for new hostels)
     const occupancy = 0;
@@ -83,10 +83,10 @@ export const createHostel = async (req, res, next) => {
       occupancy: 0
     };
     
-    console.log('🔄 Data for DB transform:', JSON.stringify(dbData, null, 2));
+    //console.log('🔄 Data for DB transform:', JSON.stringify(dbData, null, 2));
     
     // Create hostel
-    console.log('💾 Inserting hostel into database...');
+    //console.log('💾 Inserting hostel into database...');
     const newHostel = await db.hostels.create(dbData);
     
     if (!newHostel) {
@@ -94,10 +94,10 @@ export const createHostel = async (req, res, next) => {
       throw new Error('Failed to create hostel - database returned no data');
     }
     
-    console.log('✅ Hostel created:', newHostel);
+    //console.log('✅ Hostel created:', newHostel);
     
     // Create room types
-    console.log('🏨 Creating room types...');
+    //console.log('🏨 Creating room types...');
     if (roomTypes && roomTypes.length) {
       for (const roomType of roomTypes) {
         console.log('  - Creating room type:', roomType);

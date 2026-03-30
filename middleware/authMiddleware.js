@@ -23,11 +23,11 @@ export const authenticateSession = async (req, res, next) => {
     const user = await SessionService.validateSession(sessionToken);
 
     if (!user) {
-      console.log('❌ Session validation failed for token:', sessionToken.substring(0, 8) + '...');
+     // console.log('❌ Session validation failed for token:', sessionToken.substring(0, 8) + '...');
       return res.status(401).json({ error: 'Invalid or expired session' });
     }
 
-    console.log('✅ Session validated for user:', user.email, 'role:', user.role);
+   // console.log('✅ Session validated for user:', user.email, 'role:', user.role);
     req.user = user;
     next();
   } catch (error) {

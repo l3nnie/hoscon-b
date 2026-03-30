@@ -84,9 +84,9 @@ export const db = {
     },
     
     async create(hostelData) {
-      console.log('🗄️ DB create called with:', JSON.stringify(hostelData, null, 2));
+      //console.log('🗄️ DB create called with:', JSON.stringify(hostelData, null, 2));
       const dbData = transformHostelForDB(hostelData);
-      console.log('🔄 Transformed data:', JSON.stringify(dbData, null, 2));
+      //console.log('🔄 Transformed data:', JSON.stringify(dbData, null, 2));
       
       const { data, error } = await supabaseAdmin
         .from('hostels')
@@ -94,14 +94,14 @@ export const db = {
         .select()
         .single();
       
-      console.log('📊 Supabase response - data:', data, 'error:', error);
+      //console.log('📊 Supabase response - data:', data, 'error:', error);
       
       if (error) {
         console.error('❌ DB insert error:', error);
         throw error;
       }
       
-      console.log('✅ DB insert success, returning:', data);
+      //console.log('✅ DB insert success, returning:', data);
       return data;
     },
     

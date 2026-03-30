@@ -108,7 +108,7 @@ export const verifySession = async (req, res, next) => {
       return ApiResponse.success(res, { valid: false, user: null }, 'Session expired or invalid');  
     }  
   
-    console.log('Session validated for user:', user.email);  
+    //console.log('Session validated for user:', user.email);  
     ApiResponse.success(res, { valid: true, user }, 'Session is valid');  
   } catch (error) {  
     console.error('Verify session error:', error);  
