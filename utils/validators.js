@@ -12,6 +12,7 @@ export const hostelSchema = z.object({
   gender: z.enum(['male', 'female', 'mixed']),
   amenities: z.array(z.string()),
   images: z.array(z.string().url('Must be a valid URL')),
+  imagesToDelete: z.array(z.string().url('Must be a valid URL')).optional(),
   roomTypes: z.array(z.object({
     type: z.string(),
     price: z.number().positive(),

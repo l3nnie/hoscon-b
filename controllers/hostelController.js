@@ -2,6 +2,7 @@ import { db } from '../config/database.js';
 import { generateSlug, ensureUniqueSlug } from '../utils/slugify.js';
 import { transformHostel } from '../utils/transform.js';
 import ApiResponse from '../utils/response.js';
+import { supabaseAdmin } from '../config/supabase.js';
 
 export const getHostels = async (req, res, next) => {
   try {
@@ -139,7 +140,7 @@ export const updateHostel = async (req, res, next) => {
     // Calculate total rooms
     const totalRooms = roomTypes.reduce((sum, rt) => sum + rt.total, 0);
     
-    // Map field names to match database columns
+    // Map field names to match database columns (exclude images, handled separately)
     const mappedData = {
       name: hostelBasicData.name,
       description: hostelBasicData.description,
@@ -150,7 +151,6 @@ export const updateHostel = async (req, res, next) => {
       price_max: hostelBasicData.priceMax,
       gender: hostelBasicData.gender,
       amenities: hostelBasicData.amenities,
-      images: hostelBasicData.images,
       contact_phone: hostelBasicData.contactPhone,
       contact_whatsapp: hostelBasicData.contactWhatsApp,
       contact_email: hostelBasicData.contactEmail,
@@ -165,6 +165,20 @@ export const updateHostel = async (req, res, next) => {
       total_rooms: totalRooms,
       updated_at: new Date()
     });
+    
+    // If images were changed, update them separately to ensure array update works
+    if (hostelBasicData.images && updatedHostel) {
+      const { error: imageUpdateError } = await supabaseAdmin
+        .from('hostels')
+        .update({ images: hostelBasicData.images })
+        .eq('id', id);
+      
+      if (imageUpdateError) {
+        console.error('Error updating images:', imageUpdateError);
+      } else {
+        console.log('Images updated successfully');
+      }
+    }
     
     // Update room types (delete existing and recreate)
     if (roomTypes) {

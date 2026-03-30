@@ -24,10 +24,22 @@ export const getDashboardStats = async (req, res, next) => {
     //console.log('Recent inquiries:', recentInquiries);
     const latestInquiries = recentInquiries.data.slice(0, 5);
     
-    // Get recent hostels (last 5)
+    // Get recent hostels (last 5) with real-time occupancy calculation
     const allHostels = await db.hostels.findAll({ limit: 100 });
     //console.log('All hostels result:', allHostels);
-    const recentHostels = allHostels.data.slice(0, 5);
+    const recentHostels = allHostels.data.slice(0, 5).map(hostel => {
+      const roomTypes = hostel.room_types || [];
+      const hostelTotalRooms = roomTypes.reduce((sum, rt) => sum + (rt.total || 0), 0);
+      const currentAvailable = roomTypes.reduce((sum, rt) => sum + (rt.available || 0), 0);
+      const occupied = Math.max(0, hostelTotalRooms - currentAvailable);
+      const realTimeOccupancy = hostelTotalRooms > 0 ? Math.round((occupied / hostelTotalRooms) * 100) : 0;
+      
+      // Return transformed hostel with real-time occupancy
+      return {
+        ...transformHostel(hostel),
+        occupancy: realTimeOccupancy
+      };
+    });
     
     //console.log('About to transform data...');
     const responseData = {
@@ -38,7 +50,7 @@ export const getDashboardStats = async (req, res, next) => {
       },
       inquiries: inquiryStats,
       recentInquiries: latestInquiries.map(transformInquiry),
-      recentHostels: recentHostels.map(transformHostel)
+      recentHostels: recentHostels
     };
     //console.log('Response data prepared:', responseData);
     
