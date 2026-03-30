@@ -188,7 +188,7 @@ class HostelService {
     }
     
     if (!isUpdate || data.gender) {
-      const validGenders = ['male', 'female', 'mixed'];
+      const validGenders = ['any', 'ladies'];
       if (data.gender && !validGenders.includes(data.gender)) {
         errors.push('Invalid gender');
       }

@@ -9,7 +9,7 @@ export const hostelSchema = z.object({
   distanceToUni: z.string().min(1, 'Distance to university is required'),
   priceMin: z.number().positive('Price must be positive'),
   priceMax: z.number().positive('Price must be positive'),
-  gender: z.enum(['male', 'female', 'mixed']),
+  gender: z.enum(['any', 'ladies']),
   amenities: z.array(z.string()),
   images: z.array(z.string().url('Must be a valid URL')),
   imagesToDelete: z.array(z.string().url('Must be a valid URL')).optional(),
