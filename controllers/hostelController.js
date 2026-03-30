@@ -3,6 +3,7 @@ import { generateSlug, ensureUniqueSlug } from '../utils/slugify.js';
 import { transformHostel } from '../utils/transform.js';
 import ApiResponse from '../utils/response.js';
 import { supabaseAdmin } from '../config/supabase.js';
+import imageService from '../services/imageService.js';
 
 export const getHostels = async (req, res, next) => {
   try {
@@ -166,8 +167,36 @@ export const updateHostel = async (req, res, next) => {
       updated_at: new Date()
     });
     
-    // If images were changed, update them separately to ensure array update works
-    if (hostelBasicData.images && updatedHostel) {
+    // Handle image deletions first
+    if (hostelBasicData.imagesToDelete && hostelBasicData.imagesToDelete.length > 0) {
+      console.log('Deleting images:', hostelBasicData.imagesToDelete);
+      for (const imageUrl of hostelBasicData.imagesToDelete) {
+        try {
+          await imageService.deleteImage(imageUrl);
+        } catch (deleteError) {
+          console.error('Error deleting image:', imageUrl, deleteError);
+          // Continue with other deletions even if one fails
+        }
+      }
+    }
+    
+    // Handle image replacements
+    if (hostelBasicData.imagesToReplace && hostelBasicData.imagesToReplace.length > 0) {
+      console.log('Replacing images:', hostelBasicData.imagesToReplace.length);
+      for (const replacement of hostelBasicData.imagesToReplace) {
+        try {
+          // Delete the old image
+          await imageService.deleteImage(replacement.oldUrl);
+          // The new URL is already in the images array, no need to do anything else
+        } catch (replaceError) {
+          console.error('Error replacing image:', replacement.oldUrl, replaceError);
+          // Continue with other replacements even if one fails
+        }
+      }
+    }
+    
+    // Update images in database after processing deletions
+    if (hostelBasicData.images) {
       const { error: imageUpdateError } = await supabaseAdmin
         .from('hostels')
         .update({ images: hostelBasicData.images })
@@ -224,8 +253,6 @@ export const deleteHostel = async (req, res, next) => {
     next(error);
   }
 };
-
-import imageService from '../services/imageService.js';
 
 export const uploadHostelImage = async (req, res, next) => {
   try {

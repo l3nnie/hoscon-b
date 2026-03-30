@@ -219,6 +219,25 @@ class ImageService {
       throw error;
     }
   }
+
+  async replaceImage(oldImageUrl, newFile) {
+    try {
+      // First delete the old image
+      await this.deleteImage(oldImageUrl);
+      
+      // Then upload the new image
+      const uploadResult = await this.uploadImage(newFile);
+      
+      if (!uploadResult.success || !uploadResult.url) {
+        throw new Error('Failed to upload replacement image');
+      }
+      
+      return { success: true, url: uploadResult.url };
+    } catch (error) {
+      console.error('Error replacing image:', error);
+      throw error;
+    }
+  }
 }
 
 export default new ImageService();

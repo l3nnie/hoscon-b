@@ -13,6 +13,10 @@ export const hostelSchema = z.object({
   amenities: z.array(z.string()),
   images: z.array(z.string().url('Must be a valid URL')),
   imagesToDelete: z.array(z.string().url('Must be a valid URL')).optional(),
+  imagesToReplace: z.array(z.object({
+    oldUrl: z.string().url('Must be a valid URL'),
+    newUrl: z.string().url('Must be a valid URL')
+  })).optional(),
   roomTypes: z.array(z.object({
     type: z.string(),
     price: z.number().positive(),
